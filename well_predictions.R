@@ -78,7 +78,7 @@ points(wp_feats$longitude, wp_feats$latitude, col = "red", cex = 0.2)
 
 # combine feature and target variables
 
-library(tidyverse)
+# library(tidyverse)
 train_targets = read.csv("traintargets.csv")
 
 total_df = left_join(train_targets, wp_feats, by = "id")
@@ -130,8 +130,6 @@ stri_isempty(total_df$scheme_management)
 apply()
 
 function_name = 
-  
-library(tidyverse)
 
 # 
 
@@ -230,8 +228,8 @@ new_all$edited_construction_year = replace(test_year,
                                            "Unknown") %>%
   as.factor()
 
-new_all$district_code %>% as.character()
-new_all$region_code %>% as.character()
+new_all$district_code = new_all$district_code %>% as.character()
+new_all$region_code = new_all$region_code %>% as.character()
 
 phillip = new_all[, !names(new_all) %in% c("scheme_name", "id", 
                                            "scheme_management", "recorded_by",
@@ -246,3 +244,86 @@ glimpse(phillip)
 
 install.packages("tree")
 install.packages("caret")
+
+library("DataExplorer")
+create_report(phillip)
+
+plot_bar(phillip)
+
+# standardize continuous values
+# what to do with zeros?
+# dummify categorical variables
+# separate X (features) and y (labels)
+# which is the best model?
+# lots of zeros for longitutde and latitude
+# DataExplorer did not know what to do with construction year and all of those Unknowns
+# should construction year be numeric / continuous? - newer wells probably have a higher likelihood
+# of being functional
+# should we drop some features to run initial vanilla model?
+# could go for random forest since there are so many features
+
+library(caret)
+
+# dummify categorical variables
+
+#
+
+# dummies = dummyVars(phillip$status_group ~ ., data = phillip[,!names(phillip) %in% "status_group"])
+
+install.packages("dummies")
+library(dummies)
+
+# dummy_df = dummy(phillip$status_group, data = phillip[,!names(phillip) %in% "status_group"], 
+                 verbose = TRUE)
+
+dummies = dummyVars(~ ., data = phillip)
+
+dumb_phillip = predict(dummies, newdata = phillip)
+
+set.seed(987)
+trainIndex <- createDataPartition(dumb_phillip$, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+head(trainIndex)
+
+#Converting outcome variable to numeric
+phillip$status_group = phillip$status_group %>%
+  as.numeric()
+
+# id<-train_processed$Loan_ID
+# train_processed$Loan_ID<-NULL
+
+dumb_phillip = predict(dummies, newdata = phillip)
+
+#Converting every categorical variable to numerical using dummy variables
+# dmy <- dummyVars(" ~ .", data = train_processed,fullRank = T)
+train_transformed <- data.frame(predict(dmy, newdata = train_processed))
+
+train_phillip <- data.frame(predict(dumb_phillip, newdata = train_))
+
+# wtf am I doing
+
+dmy <- dummyVars(" ~ .", data = phillip,fullRank = T)
+train_transformed <- data.frame(predict(dmy, newdata = phillip))
+
+train_transformed$status_group<-as.factor(train_transformed$status_group)
+
+glimpse(train_transformed[,1:10])
+
+index <- createDataPartition(train_transformed$status_group, p=0.75, list=FALSE)
+trainSet <- train_transformed[ index,]
+testSet <- train_transformed[-index,]
+
+str(trainSet)
+
+install.packages("randomForest")
+library(randomForest)
+
+control <- rfeControl(functions = NULL,
+                      method = "boot",
+                      saveDetails = TRUE,
+                      verbose = TRUE)
+outcomeName<-'status_group'
+predictors<-names(trainSet)[!names(trainSet) %in% outcomeName]
+Loan_Pred_Profile <- rfe(trainSet[,predictors], trainSet[,outcomeName],
+                         rfeControl = control)
