@@ -327,3 +327,6 @@ outcomeName<-'status_group'
 predictors<-names(trainSet)[!names(trainSet) %in% outcomeName]
 Loan_Pred_Profile <- rfe(trainSet[,predictors], trainSet[,outcomeName],
                          rfeControl = control)
+
+# Homework: run subset of data and figure out the theory of what's going on behind the scenes
+
