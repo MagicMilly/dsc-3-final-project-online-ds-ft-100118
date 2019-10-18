@@ -46,4 +46,28 @@ results = predict(rf_model, newdata = testing)
 
 # predict(bothModels)
 
+# re-run same model with resampling to see if that affects the results, increase
+# number of observations
+
+with_resample = the_chosen_df[sample(nrow(the_chosen_df), 20000), sample = TRUE]
+
+# convert to dataframe
+
+with_resample = as.data.frame(with_resample)
+
+samp_2 = createDataPartition(with_resample$status_group, p = 0.75, list = FALSE)
+
+training_2 = with_resample[samp_2,]  
+testing_2 = with_resample[-samp_2,]
+
+# set seed for reproducibility
+
+set.seed(42)
+
+rf_model_2 = train(x = training_2[,-9],
+                 y = training_2$status_group,
+                 method = "rf")
+
+# must have forgotten to change a numeric variable to a factor
+
 
